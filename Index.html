@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calendario de Hábitos · Alba</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Inter:wght@300;400;500;600&display=swap');
+
+  :root {
+    --bg: #0f0f14;
+    --surface: #17171f;
+    --surface2: #1e1e2a;
+    --border: #2a2a3a;
+    --lavender: #b8a9f0;
+    --lavender-dim: #6b5fa0;
+    --gold: #e8c97a;
+    --mint: #7dd4b0;
+    --coral: #f08080;
+    --cream: #f0ead8;
+    --text: #e8e4f0;
+    --muted: #7a7590;
+    --rest: #3a3a4a;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    min-height: 100vh;
+    padding: 24px 16px 48px;
+  }
+
+  header { text-align: center; margin-bottom: 28px; }
+  header h1 { font-family: 'Playfair Display', serif; font-size: 2rem; color: var(--lavender); }
+  header p { color: var(--muted); font-size: 0.82rem; margin-top: 6px; }
+
+  .legend {
+    display: flex; flex-wrap: wrap; gap: 10px;
+    justify-content: center; margin-bottom: 24px;
+  }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 0.73rem; color: var(--muted); }
+  .legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+
+  /* Story bar */
+  .story-bar {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 14px; padding: 16px 20px; margin-bottom: 24px;
+    max-width: 760px; margin-left: auto; margin-right: auto;
+  }
+  .story-bar h3 { font-family: 'Playfair Display', serif; font-size: 1rem; color: var(--gold); margin-bottom: 12px; }
+  .story-phases { display: flex; flex-direction: column; gap: 8px; }
+  .phase-row { display: flex; align-items: center; gap: 10px; }
+  .phase-label { font-size: 0.72rem; color: var(--muted); width: 130px; flex-shrink: 0; }
+  .phase-bar-bg { flex: 1; height: 8px; background: var(--surface2); border-radius: 4px; overflow: hidden; }
+  .phase-bar-fill { height: 100%; border-radius: 4px; background: var(--gold); width: 0%; transition: width 0.4s; }
+  .phase-count { font-size: 0.7rem; color: var(--muted); width: 50px; text-align: right; }
+
+  /* Story tasks */
+  .story-tasks { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+  .story-task {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 6px 12px; font-size: 0.73rem;
+    color: var(--muted); cursor: pointer; transition: all 0.2s;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .story-task:hover { border-color: var(--gold); color: var(--gold); }
+  .story-task.done { background: #2a2515; border-color: var(--gold); color: var(--gold); }
+
+  /* Calendar */
+  .calendar-grid {
+    display: grid; grid-template-columns: repeat(7, 1fr);
+    gap: 5px; max-width: 940px; margin: 0 auto;
+  }
+  .day-header {
+    text-align: center; font-size: 0.68rem; font-weight: 600;
+    color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; padding: 6px 0;
+  }
+  .day-header.rest-day { color: #4a4a5a; }
+
+  .day-cell {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 7px 6px; min-height: 140px;
+    transition: border-color 0.2s, transform 0.1s; position: relative;
+  }
+  .day-cell.rest { background: #131318; }
+  .day-cell.past { opacity: 0.55; }
+  .day-cell.today { border-color: var(--lavender); box-shadow: 0 0 0 1px var(--lavender-dim); }
+  .day-cell.deadline { border-color: var(--gold); }
+  .day-cell.kdp { border-color: var(--mint); }
+  .day-cell.empty { background: transparent; border: none; }
+
+  .day-num { font-size: 0.72rem; font-weight: 600; color: var(--muted); margin-bottom: 4px; }
+  .day-cell.today .day-num { color: var(--lavender); }
+  .day-cell.deadline .day-num { color: var(--gold); }
+  .day-cell.kdp .day-num { color: var(--mint); }
+
+  .badge {
+    font-size: 0.52rem; font-weight: 700; padding: 2px 5px;
+    border-radius: 4px; display: inline-block; letter-spacing: 0.04em; margin-bottom: 4px;
+  }
+  .badge-gold { background: var(--gold); color: #1a1500; }
+  .badge-mint { background: var(--mint); color: #0a1a14; }
+
+  .habits-list { display: flex; flex-direction: column; gap: 3px; }
+
+  .habit-chip {
+    display: flex; align-items: center; gap: 4px;
+    font-size: 0.59rem; color: #8888aa; padding: 2px 0;
+    cursor: pointer; user-select: none; transition: color 0.15s;
+  }
+  .habit-chip .dot {
+    width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
+    border: 1px solid currentColor; transition: background 0.15s;
+  }
+  .habit-chip.checked { }
+  .habit-chip.checked .dot { background: currentColor; }
+
+  .habit-chip.train { color: #7a5050; }
+  .habit-chip.train.checked { color: var(--coral); }
+  .habit-chip.yoga { color: #406050; }
+  .habit-chip.yoga.checked { color: var(--mint); }
+  .habit-chip.keto { color: #6a5820; }
+  .habit-chip.keto.checked { color: var(--gold); }
+  .habit-chip.supp { color: #504870; }
+  .habit-chip.supp.checked { color: var(--lavender); }
+  .habit-chip.story { color: #604838; }
+  .habit-chip.story.checked { color: #f0b890; }
+  .habit-chip.kdp-chip { color: #306050; }
+  .habit-chip.kdp-chip.checked { color: var(--mint); }
+
+  .rest-label { font-size: 0.58rem; color: #3a3a52; text-align: center; margin-top: 6px; font-style: italic; }
+
+  /* Food popup */
+  .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 99; }
+  .overlay.open { display: block; }
+  .food-popup {
+    display: none; position: fixed; top: 50%; left: 50%;
+    transform: translate(-50%,-50%); background: var(--surface2);
+    border: 1px solid var(--gold); border-radius: 16px; padding: 24px;
+    z-index: 100; width: min(340px, 90vw);
+    box-shadow: 0 20px 60px rgba(0,0,0,0.7);
+  }
+  .food-popup.open { display: block; }
+  .food-popup h3 { font-family: 'Playfair Display', serif; color: var(--gold); font-size: 1rem; margin-bottom: 14px; }
+  .food-section { margin-bottom: 12px; }
+  .food-section h4 { font-size: 0.68rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 4px; }
+  .food-section p { font-size: 0.8rem; color: var(--text); line-height: 1.5; }
+  .popup-close { position: absolute; top: 12px; right: 14px; background: none; border: none; color: var(--muted); font-size: 1.2rem; cursor: pointer; }
+
+  /* Stats */
+  .stats-row {
+    display: flex; gap: 10px; max-width: 700px;
+    margin: 28px auto 0; flex-wrap: wrap; justify-content: center;
+  }
+  .stat-box {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 12px 18px; text-align: center; min-width: 95px;
+  }
+  .stat-num { font-family: 'Playfair Display', serif; font-size: 1.5rem; color: var(--lavender); }
+  .stat-label { font-size: 0.63rem; color: var(--muted); margin-top: 2px; text-transform: uppercase; letter-spacing: 0.06em; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>✦ Mis Hábitos</h1>
+  <p>21 jun – 21 jul · Haz clic en cada hábito para marcarlo · Toca 🥑 para ver el menú del día</p>
+</header>
+
+<div class="legend">
+  <div class="legend-item"><div class="legend-dot" style="background:var(--coral)"></div> Entrenamiento</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--mint)"></div> Yoga 10 min</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--gold)"></div> Keto</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--lavender)"></div> Suplementos</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#f0b890"></div> Cuento</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#3a3a52"></div> Miércoles (descanso muscular)</div>
+</div>
+
+<!-- Story progress -->
+<div class="story-bar">
+  <h3>📖 Cuento de Emma · Deadline 12 jul · Subida KDP 12–14 jul</h3>
+  <div class="story-phases">
+    <div class="phase-row">
+      <div class="phase-label">✏️ Verso final</div>
+      <div class="phase-bar-bg"><div class="phase-bar-fill" id="pb-verso"></div></div>
+      <div class="phase-count" id="pc-verso">0/7 días</div>
+    </div>
+    <div class="phase-row">
+      <div class="phase-label">📐 Maquetación (40 págs)</div>
+      <div class="phase-bar-bg"><div class="phase-bar-fill" id="pb-maq"></div></div>
+      <div class="phase-count" id="pc-maq">0/20 días</div>
+    </div>
+    <div class="phase-row">
+      <div class="phase-label">🎨 Portada</div>
+      <div class="phase-bar-bg"><div class="phase-bar-fill" id="pb-port"></div></div>
+      <div class="phase-count" id="pc-port">0/7 días</div>
+    </div>
+    <div class="phase-row">
+      <div class="phase-label">☁️ Subida KDP</div>
+      <div class="phase-bar-bg"><div class="phase-bar-fill" id="pb-kdp" style="background:var(--mint)"></div></div>
+      <div class="phase-count" id="pc-kdp">0/3 días</div>
+    </div>
+  </div>
+  <div class="story-tasks">
+    <div class="story-task" onclick="toggleStoryTask(this,'t1')">○ Verso final escrito</div>
+    <div class="story-task" onclick="toggleStoryTask(this,'t2')">○ 40 páginas maquetadas</div>
+    <div class="story-task" onclick="toggleStoryTask(this,'t3')">○ Tipografía elegida</div>
+    <div class="story-task" onclick="toggleStoryTask(this,'t4')">○ Portada creada</div>
+    <div class="story-task" onclick="toggleStoryTask(this,'t5')">○ Subido a KDP</div>
+  </div>
+</div>
+
+<div class="calendar-grid" id="calendar">
+  <div class="day-header">Dom</div>
+  <div class="day-header">Lun</div>
+  <div class="day-header">Mar</div>
+  <div class="day-header rest-day">Mié ✦</div>
+  <div class="day-header">Jue</div>
+  <div class="day-header">Vie</div>
+  <div class="day-header">Sáb</div>
+</div>
+
+<div class="overlay" id="overlay" onclick="closeFood()"></div>
+<div class="food-popup" id="foodPopup">
+  <button class="popup-close" onclick="closeFood()">×</button>
+  <h3 id="foodTitle">🥑 Menú Keto</h3>
+  <div id="foodContent"></div>
+</div>
+
+<div class="stats-row">
+  <div class="stat-box"><div class="stat-num" id="sTrain">0</div><div class="stat-label">Entrenamientos</div></div>
+  <div class="stat-box"><div class="stat-num" id="sYoga">0</div><div class="stat-label">Yoga</div></div>
+  <div class="stat-box"><div class="stat-num" id="sKeto">0</div><div class="stat-label">Días keto</div></div>
+  <div class="stat-box"><div class="stat-num" id="sSupp">0</div><div class="stat-label">Suplementos</div></div>
+  <div class="stat-box"><div class="stat-num" id="sMaq">0</div><div class="stat-label">Págs maquetadas</div></div>
+</div>
+
+<script>
+// ── FECHAS ───────────────────────────────────────────────────────
+const START    = new Date(2025, 5, 21); // dom 21 jun
+const END      = new Date(2025, 6, 21); // lun 21 jul
+const DEADLINE = new Date(2025, 6, 12); // sáb 12 jul
+const KDP_END  = new Date(2025, 6, 14); // lun 14 jul
+
+// Fases cuento (inclusive)
+// Verso:       21 jun – 27 jun (semana 1)
+// Maquetación: 21 jun – 11 jul (2 págs/día días activos, paralela)
+// Portada:     28 jun – 11 jul (semana 2 en adelante, paralela)
+// KDP:         12 jul – 14 jul
+
+const VERSO_END  = new Date(2025, 5, 27);
+const MAQ_START  = new Date(2025, 5, 21);
+const MAQ_END    = new Date(2025, 6, 11);
+const PORT_START = new Date(2025, 5, 28);
+const PORT_END   = new Date(2025, 6, 11);
+const KDP_START  = new Date(2025, 6, 12);
+
+// ── MENÚS KETO ───────────────────────────────────────────────────
+const MENUS = [
+  [{d:"Desayuno",m:"Jamón ibérico + queso manchego + aceitunas negras + café solo"},{d:"Comida",m:"Huevos revueltos con setas y beicon + aguacate con sal"},{d:"Cena",m:"Tabla de embutidos: chorizo, salchichón, lomo + queso tierno + pepinillos"},{d:"Snack",m:"Nueces + queso curado"}],
+  [{d:"Desayuno",m:"Lomo embuchado + queso brie + aceitunas gordal + café"},{d:"Comida",m:"Ensalada de atún con aguacate, tomate cherry y aceite de oliva"},{d:"Cena",m:"Salmón a la plancha con mantequilla y eneldo + espárragos trigueros"},{d:"Snack",m:"Almendras + loncha de jamón serrano"}],
+  [{d:"Desayuno",m:"Bacon crujiente + 3 huevos fritos + queso fundido + café"},{d:"Comida",m:"Pollo al horno con ajo y limón + brócoli salteado en mantequilla"},{d:"Cena",m:"Tortilla de jamón y queso (sin patata) con ensalada verde"},{d:"Snack",m:"Aceitunas manzanilla + queso en dados"}],
+  [{d:"Desayuno",m:"Queso de cabra + jamón york + aceitunas + infusión de jengibre"},{d:"Comida",m:"Carne picada con pimientos y queso gratinado"},{d:"Cena",m:"Tabla ibérica: queso azul, manchego, chorizo, aceitunas, pepinillos"},{d:"Snack",m:"Avellanas + loncha de salchichón"}],
+  [{d:"Desayuno",m:"Revuelto de espinacas, jamón y queso crema + café"},{d:"Comida",m:"Merluza al horno con mantequilla y alcaparras + judías verdes"},{d:"Cena",m:"Alitas de pollo al ajillo + ensalada de rúcula con parmesano"},{d:"Snack",m:"Queso manchego + aceitunas negras"}],
+  [{d:"Desayuno",m:"Chorizo a la sidra (poca cantidad) + huevo duro + queso"},{d:"Comida",m:"Cerdo en salsa de mostaza y nata + coliflor al vapor"},{d:"Cena",m:"Tabla: salchichón, jamón, queso viejo + aceitunas + pepinillos"},{d:"Snack",m:"Pistachos + loncha de lomo embuchado"}],
+  [{d:"Desayuno",m:"Jamón serrano + queso edam + aceitunas gordal + café con leche entera"},{d:"Comida",m:"Ternera a la plancha con mantequilla y tomillo + espinacas salteadas"},{d:"Cena",m:"Huevos a la flamenca con chorizo y tomate natural (sin pan)"},{d:"Snack",m:"Queso crema + apio + nueces"}],
+];
+
+// ── ESTADO ───────────────────────────────────────────────────────
+let state = JSON.parse(localStorage.getItem('hab2_state') || '{}');
+function save() { localStorage.setItem('hab2_state', JSON.stringify(state)); }
+
+function d2s(date) { return date.toISOString().slice(0,10); }
+function fmt(d) { return `${d.getDate().toString().padStart(2,'0')}/${(d.getMonth()+1).toString().padStart(2,'0')}`; }
+function isWed(d) { return d.getDay() === 3; }
+function sameDay(a,b) { return a.getFullYear()===b.getFullYear()&&a.getMonth()===b.getMonth()&&a.getDate()===b.getDate(); }
+function inRange(d, s, e) { return d >= s && d <= e; }
+
+function toggleHabit(key) { state[key]=!state[key]; save(); renderAll(); }
+
+// Story milestones
+function toggleStoryTask(el, id) {
+  el.classList.toggle('done');
+  el.textContent = (el.classList.contains('done') ? '✓ ' : '○ ') + el.textContent.slice(2);
+  let tasks = JSON.parse(localStorage.getItem('story_tasks2')||'{}');
+  tasks[id] = el.classList.contains('done');
+  localStorage.setItem('story_tasks2', JSON.stringify(tasks));
+}
+
+window.addEventListener('load', () => {
+  let tasks = JSON.parse(localStorage.getItem('story_tasks2')||'{}');
+  document.querySelectorAll('.story-task').forEach((el,i) => {
+    const id = 't'+(i+1);
+    if (tasks[id]) { el.classList.add('done'); el.textContent = '✓ ' + el.textContent.slice(2); }
+  });
+});
+
+// ── RENDER ───────────────────────────────────────────────────────
+function renderAll() {
+  const cal = document.getElementById('calendar');
+  const headers = Array.from(cal.children).slice(0,7);
+  cal.innerHTML = '';
+  headers.forEach(h => cal.appendChild(h));
+
+  const today = new Date(); today.setHours(0,0,0,0);
+
+  let stats = {train:0, yoga:0, keto:0, supp:0, maq:0};
+  let versoChecked=0, portChecked=0, kdpChecked=0, maqChecked=0;
+  let versoTotal=0, portTotal=0, kdpTotal=0, maqTotal=0;
+
+  let menuIdx = 0;
+
+  // Necesitamos rellenar con vacíos si el primer día no es domingo (dom=0)
+  // START = domingo 21 jun => getDay()=0, no hacen falta vacíos
+  const startDow = START.getDay(); // 0
+  for(let i=0; i<startDow; i++) {
+    const emp = document.createElement('div'); emp.className='day-cell empty'; cal.appendChild(emp);
+  }
+
+  let cur = new Date(START);
+  while (cur <= END) {
+    const ds = d2s(cur);
+    const wed = isWed(cur);
+    const isPast = cur < today;
+    const isToday = sameDay(cur, today);
+    const isDL = sameDay(cur, DEADLINE);
+    const isKDP = inRange(cur, KDP_START, KDP_END);
+
+    const cell = document.createElement('div');
+    let cls = 'day-cell';
+    if (wed) cls += ' rest';
+    if (isPast) cls += ' past';
+    if (isToday) cls += ' today';
+    if (isDL) cls += ' deadline';
+    else if (isKDP) cls += ' kdp';
+    cell.className = cls;
+
+    let html = `<div class="day-num">${fmt(cur)}${isToday?' HOY':''}</div>`;
+    if (isDL) html += `<span class="badge badge-gold">⭐ DEADLINE</span><br>`;
+    else if (isKDP) html += `<span class="badge badge-mint">☁️ KDP</span><br>`;
+
+    html += `<div class="habits-list">`;
+
+    // Entrenamiento: todos excepto miércoles
+    if (!wed) {
+      const k = ds+'_train';
+      if(state[k]) stats.train++;
+      html += chip(k,'train','💪','Entrena',state[k]);
+    }
+
+    // Yoga: todos los días
+    const ky = ds+'_yoga';
+    if(state[ky]) stats.yoga++;
+    html += chip(ky,'yoga','🌿','Yoga 10 min',state[ky]);
+
+    // Keto: todos (con popup)
+    const kk = ds+'_keto';
+    if(state[kk]) stats.keto++;
+    const mi = menuIdx % MENUS.length;
+    html += `<div class="habit-chip keto${state[kk]?' checked':''}" onclick="showFood(${mi},'${fmt(cur)}','${kk}')">
+      <span class="dot"></span>🥑 Keto (ver menú)
+    </div>`;
+
+    // Suplementos: todos
+    const ks = ds+'_supp';
+    if(state[ks]) stats.supp++;
+    html += chip(ks,'supp','💊','Suplementos',state[ks]);
+
+    // ── TAREAS CUENTO ──
+    // Maquetación (2 págs/día): 21 jun – 11 jul (no miércoles)
+    if (!wed && inRange(cur, MAQ_START, MAQ_END)) {
+      maqTotal++;
+      const km = ds+'_maq';
+      if(state[km]) { maqChecked++; stats.maq+=2; }
+      html += chip(km,'story','📐','Maquetar 2 págs',state[km]);
+    }
+
+    // Verso: 21–27 jun (todos los días incluso miércoles)
+    if (inRange(cur, START, VERSO_END)) {
+      versoTotal++;
+      const kv = ds+'_verso';
+      if(state[kv]) versoChecked++;
+      html += chip(kv,'story','✏️','Verso final',state[kv]);
+    }
+
+    // Portada: 28 jun – 11 jul (no miércoles)
+    if (!wed && inRange(cur, PORT_START, PORT_END)) {
+      portTotal++;
+      const kp = ds+'_port';
+      if(state[kp]) portChecked++;
+      html += chip(kp,'story','🎨','Portada',state[kp]);
+    }
+
+    // KDP: 12–14 jul
+    if (inRange(cur, KDP_START, KDP_END)) {
+      kdpTotal++;
+      const kd = ds+'_kdp';
+      if(state[kd]) kdpChecked++;
+      html += chip(kd,'kdp-chip','☁️','Subida KDP',state[kd]);
+    }
+
+    html += `</div>`;
+    if (wed) html += `<div class="rest-label">descanso muscular</div>`;
+
+    cell.innerHTML = html;
+    cal.appendChild(cell);
+    menuIdx++;
+    cur.setDate(cur.getDate()+1);
+  }
+
+  // Stats numéricas
+  document.getElementById('sTrain').textContent = stats.train;
+  document.getElementById('sYoga').textContent  = stats.yoga;
+  document.getElementById('sKeto').textContent  = stats.keto;
+  document.getElementById('sSupp').textContent  = stats.supp;
+  document.getElementById('sMaq').textContent   = stats.maq;
+
+  // Barras progreso cuento
+  setBar('verso', versoChecked, versoTotal, `${versoChecked}/${versoTotal} días`);
+  setBar('maq',   maqChecked,   maqTotal,   `${maqChecked*2}/40 págs`);
+  setBar('port',  portChecked,  portTotal,  `${portChecked}/${portTotal} días`);
+  setBar('kdp',   kdpChecked,   kdpTotal,   `${kdpChecked}/${kdpTotal} días`);
+}
+
+function chip(key, cls, icon, label, checked) {
+  return `<div class="habit-chip ${cls}${checked?' checked':''}" onclick="toggleHabit('${key}')">
+    <span class="dot"></span>${icon} ${label}
+  </div>`;
+}
+
+function setBar(id, val, total, label) {
+  const pct = total > 0 ? Math.round(val/total*100) : 0;
+  const fill = document.getElementById('pb-'+id);
+  const count = document.getElementById('pc-'+id);
+  if(fill) fill.style.width = pct+'%';
+  if(count) count.textContent = label;
+}
+
+// ── POPUP COMIDA ─────────────────────────────────────────────────
+function showFood(idx, dateStr, ketoKey) {
+  const menu = MENUS[idx % MENUS.length];
+  document.getElementById('foodTitle').textContent = `🥑 Menú Keto · ${dateStr}`;
+  let html = '';
+  menu.forEach(item => {
+    html += `<div class="food-section"><h4>${item.d}</h4><p>${item.m}</p></div>`;
+  });
+  html += `<button onclick="markKeto('${ketoKey}')" style="margin-top:12px;width:100%;padding:8px;background:var(--surface);border:1px solid var(--gold);border-radius:8px;color:var(--gold);font-size:0.8rem;cursor:pointer;">
+    ${state[ketoKey] ? '✓ Marcado como hecho' : 'Marcar como hecho'}
+  </button>`;
+  document.getElementById('foodContent').innerHTML = html;
+  document.getElementById('foodPopup').classList.add('open');
+  document.getElementById('overlay').classList.add('open');
+}
+
+function markKeto(key) { state[key]=!state[key]; save(); closeFood(); renderAll(); }
+function closeFood() {
+  document.getElementById('foodPopup').classList.remove('open');
+  document.getElementById('overlay').classList.remove('open');
+}
+
+renderAll();
+</script>
+</body>
+</html>
+
